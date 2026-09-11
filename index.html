@@ -7,15 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .progress-bar-fill {
-            transition: width 0.3s ease;
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .progress-bar-fill { transition: width 0.3s ease; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col" id="bodyElement">
@@ -33,10 +28,10 @@
                 </div>
             </div>
             
-            <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800">
-                    <span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                    Pronto
+            <div class="flex items-center space-x-1.5" id="serverStatusBadge">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800" id="statusPill">
+                    <span class="w-1.5 h-1.5 mr-1.5 bg-amber-500 rounded-full animate-ping"></span>
+                    A verificar...
                 </span>
             </div>
         </div>
@@ -71,9 +66,9 @@
             </div>
             
             <h3 class="font-bold text-slate-800 text-lg">Toque aqui para escolher fotos</h3>
-            <p class="text-xs text-slate-500 mt-1">Pode escolher várias fotos ou tirar fotografia</p>
+            <p class="text-xs text-slate-500 mt-1">Pode selecionar várias fotos da galeria ou tirar fotografia</p>
             
-            <button type="button" id="btnBrowse" onclick="document.getElementById('fileInput').click()" class="mt-4 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md active:scale-95 transition">
+            <button type="button" id="btnBrowse" onclick="document.getElementById('fileInput').click()" class="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition">
                 <span>📷</span> Escolher Fotos
             </button>
         </div>
@@ -82,7 +77,7 @@
         <div id="queueSection" class="hidden flex flex-col space-y-3">
             <div class="flex items-center justify-between px-1">
                 <h3 class="font-bold text-slate-700 text-sm flex items-center gap-1.5">
-                    <span>Fotos para Enviar</span>
+                    <span>Fotos Selecionadas</span>
                     <span id="fileCountBadge" class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0</span>
                 </h3>
                 <button onclick="clearQueue()" id="btnClearAll" class="text-xs text-red-500 hover:text-red-700 font-semibold">Limpar Lista</button>
@@ -117,7 +112,7 @@
                 ✓
             </div>
             <h3 class="font-bold text-xl text-emerald-900">Fotos Enviadas com Sucesso!</h3>
-            <p class="text-xs sm:text-sm text-emerald-800 leading-relaxed">
+            <p class="text-xs sm:text-sm text-emerald-800 leading-relaxed" id="successDesc">
                 As fotos foram enviadas com sucesso para a nuvem. O PC irá descarregá-las automaticamente para <strong id="successFolderLabel">Z:\Fotos Telemoveis\José</strong> e apagá-las do servidor.
             </p>
             <button onclick="resetUploadForm()" class="mt-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-2xl shadow transition active:scale-95">
@@ -125,22 +120,66 @@
             </button>
         </div>
 
+        <!-- Debug / Status Log Box -->
+        <div id="statusLogBox" class="hidden bg-slate-900 text-emerald-400 p-3 rounded-2xl text-[11px] font-mono overflow-x-auto max-h-36">
+            <div id="logContent"></div>
+        </div>
+
     </main>
 
     <!-- Script Logic -->
     <script>
-        // Token pré-configurado
+        // Token pré-configurado e descodificado
         const _k = [77,66,90,117,25,66,24,25,27,30,75,65,29,29,124,75,127,80,25,123,70,94,82,95,110,65,31,111,64,112,120,105,111,114,27,100,92,114,98,77];
-        const DEFAULT_CONFIG = {
+        const GITHUB_TOKEN = _k.map(c => String.fromCharCode(c ^ 42)).join('');
+        
+        const CONFIG = {
             owner: 'CentauroPt',
             repo: 'fotos-temp',
-            token: _k.map(c => String.fromCharCode(c ^ 42)).join(''),
+            token: GITHUB_TOKEN,
             branch: 'main'
         };
 
         let currentUser = 'jose';
         let filesQueue = [];
         let isUploading = false;
+
+        function log(msg) {
+            console.log(msg);
+            const box = document.getElementById('statusLogBox');
+            const content = document.getElementById('logContent');
+            if (box && content) {
+                box.classList.remove('hidden');
+                const p = document.createElement('div');
+                p.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                content.appendChild(p);
+                box.scrollTop = box.scrollHeight;
+            }
+        }
+
+        async function verifyServerConnection() {
+            const pill = document.getElementById('statusPill');
+            try {
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}`, {
+                    headers: {
+                        'Authorization': `Bearer ${CONFIG.token}`,
+                        'Accept': 'application/vnd.github+json'
+                    }
+                });
+                if (res.ok) {
+                    pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800';
+                    pill.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span> Ligado';
+                } else {
+                    pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-800';
+                    pill.innerHTML = '⚠️ Erro ligação';
+                    log(`Erro ao ligar ao GitHub: HTTP ${res.status}`);
+                }
+            } catch (e) {
+                pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-800';
+                pill.innerHTML = '⚠️ Sem rede';
+                log(`Falha de rede: ${e.message}`);
+            }
+        }
 
         function initApp() {
             const params = new URLSearchParams(window.location.search);
@@ -158,6 +197,7 @@
             }
 
             setupDropZone();
+            verifyServerConnection();
         }
 
         function selectUser(user, updateUrl = true) {
@@ -181,7 +221,7 @@
                 if (successFolder) successFolder.innerText = 'Z:\\Fotos Telemoveis\\José';
                 
                 uploadBtn.className = 'w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base shadow-lg transition flex items-center justify-center gap-2';
-                btnBrowse.className = 'mt-4 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md active:scale-95 transition';
+                btnBrowse.className = 'mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition';
                 uploadIconBox.className = 'w-20 h-20 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-300 shadow-inner';
                 dropZone.className = 'border-2 border-dashed border-blue-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition shadow-sm group';
 
@@ -197,7 +237,7 @@
                 if (successFolder) successFolder.innerText = 'Z:\\Fotos Telemoveis\\Pili';
 
                 uploadBtn.className = 'w-full py-4 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-base shadow-lg transition flex items-center justify-center gap-2';
-                btnBrowse.className = 'mt-4 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md active:scale-95 transition';
+                btnBrowse.className = 'mt-4 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition';
                 uploadIconBox.className = 'w-20 h-20 rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-300 shadow-inner';
                 dropZone.className = 'border-2 border-dashed border-rose-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:border-rose-500 hover:bg-rose-50/30 transition shadow-sm group';
 
@@ -288,7 +328,9 @@
                 
                 let statusBadge = '';
                 if (item.status === 'pending') {
-                    statusBadge = `<span class="text-[11px] text-slate-500 font-medium">Pronta para enviar</span>`;
+                    statusBadge = `<span class="text-[11px] text-slate-500 font-medium">Pronta</span>`;
+                } else if (item.status === 'compressing') {
+                    statusBadge = `<span class="text-[11px] text-amber-600 font-bold animate-pulse">A otimizar...</span>`;
                 } else if (item.status === 'uploading') {
                     statusBadge = `<span class="text-[11px] text-blue-600 font-bold animate-pulse">A enviar...</span>`;
                 } else if (item.status === 'success') {
@@ -317,15 +359,51 @@
             });
         }
 
-        function fileToBase64(file) {
+        // Smart image compressor client-side (converts large phone photos into ultra-fast high quality base64)
+        function processImageToBase64(file) {
             return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => {
-                    const base64Content = reader.result.split(',')[1];
-                    resolve(base64Content);
+                if (!file.type.startsWith('image/')) {
+                    // For non-images or raw files, read directly
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = e => reject(e);
+                    reader.readAsDataURL(file);
+                    return;
+                }
+
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_SIZE = 2560; // Max 2.5K resolution (crystal clear quality, small filesize)
+
+                    if (width > MAX_SIZE || height > MAX_SIZE) {
+                        if (width > height) {
+                            height = Math.round((height * MAX_SIZE) / width);
+                            width = MAX_SIZE;
+                        } else {
+                            width = Math.round((width * MAX_SIZE) / height);
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+                    resolve(dataUrl.split(',')[1]);
                 };
-                reader.onerror = error => reject(error);
+                img.onerror = () => {
+                    // Fallback to raw reader if image load fails
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = e => reject(e);
+                    reader.readAsDataURL(file);
+                };
+                img.src = URL.createObjectURL(file);
             });
         }
 
@@ -356,9 +434,10 @@
             for (let item of pending) {
                 item.status = 'uploading';
                 renderQueue();
+                log(`A enviar: ${item.name}...`);
 
                 try {
-                    const base64Data = await fileToBase64(item.file);
+                    const base64Data = await processImageToBase64(item.file);
                     
                     const now = new Date();
                     const pad = (n) => n.toString().padStart(2, '0');
@@ -367,18 +446,18 @@
                     const safeName = item.name.replace(/[^a-zA-Z0-9._-]/g, '_');
                     const uploadPath = `uploads/${currentUser}/${timestamp}_${safeName}`;
 
-                    const url = `https://api.github.com/repos/${DEFAULT_CONFIG.owner}/${DEFAULT_CONFIG.repo}/contents/${uploadPath}`;
+                    const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${uploadPath}`;
                     
                     const bodyData = {
                         message: `Upload foto por ${currentUser}: ${item.name}`,
                         content: base64Data,
-                        branch: DEFAULT_CONFIG.branch
+                        branch: CONFIG.branch
                     };
 
                     const response = await fetch(url, {
                         method: 'PUT',
                         headers: {
-                            'Authorization': `Bearer ${DEFAULT_CONFIG.token}`,
+                            'Authorization': `Bearer ${CONFIG.token}`,
                             'Accept': 'application/vnd.github+json',
                             'Content-Type': 'application/json'
                         },
@@ -386,15 +465,17 @@
                     });
 
                     if (!response.ok) {
-                        const err = await response.json();
+                        const err = await response.json().catch(() => ({}));
                         throw new Error(err.message || `Erro HTTP ${response.status}`);
                     }
 
                     item.status = 'success';
+                    log(`✓ Sucesso no envio: ${item.name}`);
                 } catch (err) {
                     console.error('Falha no upload:', err);
                     item.status = 'error';
                     item.errorMsg = err.message;
+                    log(`❌ Erro em ${item.name}: ${err.message}`);
                 }
 
                 completed++;
@@ -419,7 +500,7 @@
                     filesQueue = [];
                 }, 600);
             } else {
-                alert('Algumas fotos não conseguiram ser enviadas. Por favor tente novamente.');
+                alert('Algumas fotos falharam ao enviar. Veja o registo no final da página para mais detalhes.');
             }
         }
 
