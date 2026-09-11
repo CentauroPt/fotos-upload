@@ -29,9 +29,9 @@
             </div>
             
             <div class="flex items-center space-x-1.5" id="serverStatusBadge">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800" id="statusPill">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800" id="statusPill">
                     <span class="w-1.5 h-1.5 mr-1.5 bg-amber-500 rounded-full animate-ping"></span>
-                    A verificar...
+                    A ligar...
                 </span>
             </div>
         </div>
@@ -42,7 +42,7 @@
 
         <!-- User Selector -->
         <div id="userSelectorBanner" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
-            <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Selecione quem está a enviar:</h2>
+            <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quem está a enviar:</h2>
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="selectUser('jose')" id="btnUserJose" class="flex items-center justify-center space-x-2 py-3 px-4 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-800 font-bold transition shadow-sm active:scale-95">
                     <span>👨‍💼</span>
@@ -57,7 +57,7 @@
 
         <!-- Upload Zone -->
         <div id="dropZone" class="border-2 border-dashed border-blue-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition shadow-sm group">
-            <input type="file" id="fileInput" multiple accept="image/*,video/*" class="hidden">
+            <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
             
             <div id="uploadIconBox" class="w-20 h-20 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-300 shadow-inner">
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,8 +65,8 @@
                 </svg>
             </div>
             
-            <h3 class="font-bold text-slate-800 text-lg">Toque aqui para escolher fotos</h3>
-            <p class="text-xs text-slate-500 mt-1">Pode selecionar várias fotos da galeria ou tirar fotografia</p>
+            <h3 class="font-bold text-slate-800 text-lg">Toque para escolher fotos</h3>
+            <p class="text-xs text-slate-500 mt-1">Selecione uma ou várias fotos da galeria</p>
             
             <button type="button" id="btnBrowse" onclick="document.getElementById('fileInput').click()" class="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition">
                 <span>📷</span> Escolher Fotos
@@ -107,7 +107,7 @@
         </div>
 
         <!-- Success Complete Banner -->
-        <div id="successCard" class="hidden bg-emerald-50 border-2 border-emerald-200 text-emerald-900 rounded-3xl p-6 text-center space-y-3 shadow-md animate-fade-in">
+        <div id="successCard" class="hidden bg-emerald-50 border-2 border-emerald-300 text-emerald-900 rounded-3xl p-6 text-center space-y-3 shadow-md animate-fade-in">
             <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
                 ✓
             </div>
@@ -120,16 +120,19 @@
             </button>
         </div>
 
-        <!-- Debug / Status Log Box -->
-        <div id="statusLogBox" class="hidden bg-slate-900 text-emerald-400 p-3 rounded-2xl text-[11px] font-mono overflow-x-auto max-h-36">
-            <div id="logContent"></div>
+        <!-- Live Status / Diagnostic Box -->
+        <div id="statusBox" class="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm text-xs space-y-1">
+            <div class="flex items-center justify-between text-slate-500 font-semibold mb-1">
+                <span>Estado do Sistema:</span>
+                <span id="statusTimestamp">Agora</span>
+            </div>
+            <div id="statusMessage" class="text-slate-700 font-medium">Pronto para selecionar fotos.</div>
         </div>
 
     </main>
 
     <!-- Script Logic -->
     <script>
-        // Token pré-configurado e descodificado
         const _k = [77,66,90,117,25,66,24,25,27,30,75,65,29,29,124,75,127,80,25,123,70,94,82,95,110,65,31,111,64,112,120,105,111,114,27,100,92,114,98,77];
         const GITHUB_TOKEN = _k.map(c => String.fromCharCode(c ^ 42)).join('');
         
@@ -144,16 +147,14 @@
         let filesQueue = [];
         let isUploading = false;
 
-        function log(msg) {
-            console.log(msg);
-            const box = document.getElementById('statusLogBox');
-            const content = document.getElementById('logContent');
-            if (box && content) {
-                box.classList.remove('hidden');
-                const p = document.createElement('div');
-                p.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-                content.appendChild(p);
-                box.scrollTop = box.scrollHeight;
+        function updateStatus(msg, isError = false) {
+            const statusMessage = document.getElementById('statusMessage');
+            const statusTimestamp = document.getElementById('statusTimestamp');
+            if (statusMessage) {
+                statusMessage.innerHTML = isError ? `<span class="text-red-600 font-bold">❌ ${msg}</span>` : `<span>${msg}</span>`;
+            }
+            if (statusTimestamp) {
+                statusTimestamp.innerText = new Date().toLocaleTimeString();
             }
         }
 
@@ -169,15 +170,16 @@
                 if (res.ok) {
                     pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800';
                     pill.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span> Ligado';
+                    updateStatus('Ligado com sucesso à conta GitHub.');
                 } else {
                     pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-800';
-                    pill.innerHTML = '⚠️ Erro ligação';
-                    log(`Erro ao ligar ao GitHub: HTTP ${res.status}`);
+                    pill.innerHTML = '⚠️ Erro';
+                    updateStatus(`Erro na ligação ao GitHub: Código ${res.status}`, true);
                 }
             } catch (e) {
                 pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-800';
                 pill.innerHTML = '⚠️ Sem rede';
-                log(`Falha de rede: ${e.message}`);
+                updateStatus(`Sem acesso à internet: ${e.message}`, true);
             }
         }
 
@@ -285,6 +287,7 @@
                 });
             });
 
+            updateStatus(`${filesQueue.length} foto(s) selecionada(s). Clique em "Enviar Fotos para o PC".`);
             renderQueue();
         }
 
@@ -329,8 +332,6 @@
                 let statusBadge = '';
                 if (item.status === 'pending') {
                     statusBadge = `<span class="text-[11px] text-slate-500 font-medium">Pronta</span>`;
-                } else if (item.status === 'compressing') {
-                    statusBadge = `<span class="text-[11px] text-amber-600 font-bold animate-pulse">A otimizar...</span>`;
                 } else if (item.status === 'uploading') {
                     statusBadge = `<span class="text-[11px] text-blue-600 font-bold animate-pulse">A enviar...</span>`;
                 } else if (item.status === 'success') {
@@ -359,51 +360,17 @@
             });
         }
 
-        // Smart image compressor client-side (converts large phone photos into ultra-fast high quality base64)
-        function processImageToBase64(file) {
+        // Lê ficheiro diretamente em Base64
+        function readFileAsBase64(file) {
             return new Promise((resolve, reject) => {
-                if (!file.type.startsWith('image/')) {
-                    // For non-images or raw files, read directly
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = e => reject(e);
-                    reader.readAsDataURL(file);
-                    return;
-                }
-
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_SIZE = 2560; // Max 2.5K resolution (crystal clear quality, small filesize)
-
-                    if (width > MAX_SIZE || height > MAX_SIZE) {
-                        if (width > height) {
-                            height = Math.round((height * MAX_SIZE) / width);
-                            width = MAX_SIZE;
-                        } else {
-                            width = Math.round((width * MAX_SIZE) / height);
-                            height = MAX_SIZE;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
-                    resolve(dataUrl.split(',')[1]);
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const res = reader.result;
+                    const commaIdx = res.indexOf(',');
+                    resolve(commaIdx !== -1 ? res.substring(commaIdx + 1) : res);
                 };
-                img.onerror = () => {
-                    // Fallback to raw reader if image load fails
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = e => reject(e);
-                    reader.readAsDataURL(file);
-                };
-                img.src = URL.createObjectURL(file);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
             });
         }
 
@@ -419,7 +386,7 @@
             uploadBtn.disabled = true;
             uploadBtn.classList.add('opacity-70', 'cursor-not-allowed');
             btnClearAll.classList.add('hidden');
-            btnText.innerText = 'A enviar fotos...';
+            btnText.innerText = 'A enviar fotos... aguarde';
 
             const progressContainer = document.getElementById('globalProgressContainer');
             const progressBar = document.getElementById('globalProgressBar');
@@ -434,10 +401,10 @@
             for (let item of pending) {
                 item.status = 'uploading';
                 renderQueue();
-                log(`A enviar: ${item.name}...`);
+                updateStatus(`A enviar: ${item.name}...`);
 
                 try {
-                    const base64Data = await processImageToBase64(item.file);
+                    const base64Data = await readFileAsBase64(item.file);
                     
                     const now = new Date();
                     const pad = (n) => n.toString().padStart(2, '0');
@@ -470,12 +437,12 @@
                     }
 
                     item.status = 'success';
-                    log(`✓ Sucesso no envio: ${item.name}`);
+                    updateStatus(`✓ Enviada com sucesso: ${item.name}`);
                 } catch (err) {
                     console.error('Falha no upload:', err);
                     item.status = 'error';
                     item.errorMsg = err.message;
-                    log(`❌ Erro em ${item.name}: ${err.message}`);
+                    updateStatus(`Erro ao enviar ${item.name}: ${err.message}`, true);
                 }
 
                 completed++;
@@ -498,9 +465,10 @@
                     document.getElementById('queueSection').classList.add('hidden');
                     document.getElementById('successCard').classList.remove('hidden');
                     filesQueue = [];
-                }, 600);
+                    updateStatus('Todas as fotos foram enviadas com sucesso para a nuvem!');
+                }, 500);
             } else {
-                alert('Algumas fotos falharam ao enviar. Veja o registo no final da página para mais detalhes.');
+                alert('Ocorreu um erro no envio. Verifique o "Estado do Sistema" no final da página.');
             }
         }
 
@@ -508,6 +476,7 @@
             filesQueue = [];
             document.getElementById('successCard').classList.add('hidden');
             document.getElementById('globalProgressContainer').classList.add('hidden');
+            updateStatus('Pronto para selecionar fotos.');
         }
 
         window.addEventListener('DOMContentLoaded', initApp);
