@@ -55,38 +55,40 @@
             </div>
         </div>
 
-        <!-- Upload Zone -->
-        <div id="dropZone" class="border-2 border-dashed border-blue-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition shadow-sm group">
-            <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+        <!-- Upload Zone with Native Overlay Input (100% Reliable on all phones) -->
+        <div id="dropZone" class="relative border-2 border-dashed border-blue-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center shadow-sm overflow-hidden group">
             
-            <div id="uploadIconBox" class="w-20 h-20 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-300 shadow-inner">
+            <!-- Transparent Full Native File Input -->
+            <input type="file" id="fileInput" multiple accept="image/*,video/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+            
+            <div id="uploadIconBox" class="w-20 h-20 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-105 transition duration-200 shadow-inner pointer-events-none">
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
             </div>
             
-            <h3 class="font-bold text-slate-800 text-lg">Toque para escolher fotos</h3>
-            <p class="text-xs text-slate-500 mt-1">Selecione uma ou várias fotos da galeria</p>
+            <h3 class="font-bold text-slate-800 text-lg pointer-events-none">Toque aqui para escolher fotos</h3>
+            <p class="text-xs text-slate-500 mt-1 pointer-events-none">Toque para abrir a galeria ou câmara</p>
             
-            <button type="button" id="btnBrowse" onclick="document.getElementById('fileInput').click()" class="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition">
-                <span>📷</span> Escolher Fotos
-            </button>
+            <div id="btnBrowse" class="mt-4 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md pointer-events-none">
+                <span>📷</span> Abrir Galeria
+            </div>
         </div>
 
         <!-- File List & Status -->
         <div id="queueSection" class="hidden flex flex-col space-y-3">
             <div class="flex items-center justify-between px-1">
                 <h3 class="font-bold text-slate-700 text-sm flex items-center gap-1.5">
-                    <span>Fotos Selecionadas</span>
+                    <span>Fotos Escolhidas:</span>
                     <span id="fileCountBadge" class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0</span>
                 </h3>
-                <button onclick="clearQueue()" id="btnClearAll" class="text-xs text-red-500 hover:text-red-700 font-semibold">Limpar Lista</button>
+                <button onclick="clearQueue()" id="btnClearAll" class="text-xs text-red-500 hover:text-red-700 font-semibold p-1">Limpar</button>
             </div>
 
             <!-- Global Progress Bar -->
             <div id="globalProgressContainer" class="hidden bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
                 <div class="flex justify-between text-xs font-bold">
-                    <span id="globalProgressLabel" class="text-slate-700">A enviar fotos...</span>
+                    <span id="globalProgressLabel" class="text-slate-700">A enviar para a nuvem...</span>
                     <span id="globalProgressPercent" class="text-blue-600">0%</span>
                 </div>
                 <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
@@ -97,36 +99,36 @@
             <!-- List of items -->
             <div id="filesContainer" class="space-y-2.5 max-h-80 overflow-y-auto pr-1"></div>
 
-            <!-- Action Button -->
+            <!-- Big Action Button -->
             <button id="uploadAllBtn" onclick="uploadAllFiles()" class="w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base shadow-lg transition active:scale-[0.99] flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                 </svg>
                 <span id="uploadBtnText">Enviar Fotos para o PC</span>
             </button>
         </div>
 
-        <!-- Success Complete Banner -->
-        <div id="successCard" class="hidden bg-emerald-50 border-2 border-emerald-300 text-emerald-900 rounded-3xl p-6 text-center space-y-3 shadow-md animate-fade-in">
-            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
+        <!-- Success Card -->
+        <div id="successCard" class="hidden bg-emerald-50 border-2 border-emerald-400 text-emerald-900 rounded-3xl p-6 text-center space-y-3 shadow-lg animate-fade-in">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold shadow-inner">
                 ✓
             </div>
-            <h3 class="font-bold text-xl text-emerald-900">Fotos Enviadas com Sucesso!</h3>
+            <h3 class="font-bold text-xl text-emerald-900">✓ Fotos Enviadas com Sucesso!</h3>
             <p class="text-xs sm:text-sm text-emerald-800 leading-relaxed" id="successDesc">
-                As fotos foram enviadas com sucesso para a nuvem. O PC irá descarregá-las automaticamente para <strong id="successFolderLabel">Z:\Fotos Telemoveis\José</strong> e apagá-las do servidor.
+                As fotos já estão guardadas na nuvem! O seu PC irá descarregá-las para <strong id="successFolderLabel">Z:\Fotos Telemoveis\José</strong> e apagá-las do servidor.
             </p>
             <button onclick="resetUploadForm()" class="mt-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-2xl shadow transition active:scale-95">
                 + Enviar Mais Fotos
             </button>
         </div>
 
-        <!-- Live Status / Diagnostic Box -->
+        <!-- Diagnostic Log Box -->
         <div id="statusBox" class="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm text-xs space-y-1">
             <div class="flex items-center justify-between text-slate-500 font-semibold mb-1">
-                <span>Estado do Sistema:</span>
+                <span>Estado:</span>
                 <span id="statusTimestamp">Agora</span>
             </div>
-            <div id="statusMessage" class="text-slate-700 font-medium">Pronto para selecionar fotos.</div>
+            <div id="statusMessage" class="text-slate-700 font-medium">A inicializar ligação...</div>
         </div>
 
     </main>
@@ -170,16 +172,16 @@
                 if (res.ok) {
                     pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800';
                     pill.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span> Ligado';
-                    updateStatus('Ligado com sucesso à conta GitHub.');
+                    updateStatus('Ligado com sucesso. Toque no quadro para escolher fotos.');
                 } else {
                     pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-800';
                     pill.innerHTML = '⚠️ Erro';
-                    updateStatus(`Erro na ligação ao GitHub: Código ${res.status}`, true);
+                    updateStatus(`Erro na ligação: HTTP ${res.status}`, true);
                 }
             } catch (e) {
                 pill.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-800';
                 pill.innerHTML = '⚠️ Sem rede';
-                updateStatus(`Sem acesso à internet: ${e.message}`, true);
+                updateStatus(`Sem ligação à internet: ${e.message}`, true);
             }
         }
 
@@ -198,7 +200,7 @@
                 selectUser('jose', false);
             }
 
-            setupDropZone();
+            setupFileInput();
             verifyServerConnection();
         }
 
@@ -223,9 +225,9 @@
                 if (successFolder) successFolder.innerText = 'Z:\\Fotos Telemoveis\\José';
                 
                 uploadBtn.className = 'w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base shadow-lg transition flex items-center justify-center gap-2';
-                btnBrowse.className = 'mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition';
-                uploadIconBox.className = 'w-20 h-20 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-300 shadow-inner';
-                dropZone.className = 'border-2 border-dashed border-blue-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition shadow-sm group';
+                btnBrowse.className = 'mt-4 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md pointer-events-none';
+                uploadIconBox.className = 'w-20 h-20 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-105 transition duration-200 shadow-inner pointer-events-none';
+                dropZone.className = 'relative border-2 border-dashed border-blue-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center shadow-sm overflow-hidden group';
 
                 if (btnJose && btnPili) {
                     btnJose.className = 'flex items-center justify-center space-x-2 py-3 px-4 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-800 font-bold transition shadow-sm';
@@ -239,9 +241,9 @@
                 if (successFolder) successFolder.innerText = 'Z:\\Fotos Telemoveis\\Pili';
 
                 uploadBtn.className = 'w-full py-4 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-base shadow-lg transition flex items-center justify-center gap-2';
-                btnBrowse.className = 'mt-4 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition';
-                uploadIconBox.className = 'w-20 h-20 rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-300 shadow-inner';
-                dropZone.className = 'border-2 border-dashed border-rose-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:border-rose-500 hover:bg-rose-50/30 transition shadow-sm group';
+                btnBrowse.className = 'mt-4 px-6 py-3 bg-rose-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md pointer-events-none';
+                uploadIconBox.className = 'w-20 h-20 rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4 group-hover:scale-105 transition duration-200 shadow-inner pointer-events-none';
+                dropZone.className = 'relative border-2 border-dashed border-rose-300 rounded-3xl p-8 bg-white flex flex-col items-center justify-center text-center shadow-sm overflow-hidden group';
 
                 if (btnJose && btnPili) {
                     btnPili.className = 'flex items-center justify-center space-x-2 py-3 px-4 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-800 font-bold transition shadow-sm';
@@ -255,16 +257,11 @@
             }
         }
 
-        function setupDropZone() {
-            const dropZone = document.getElementById('dropZone');
+        function setupFileInput() {
             const fileInput = document.getElementById('fileInput');
 
-            dropZone.addEventListener('click', (e) => {
-                if (e.target !== fileInput) fileInput.click();
-            });
-
             fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length) {
+                if (e.target.files && e.target.files.length > 0) {
                     addFilesToQueue(Array.from(e.target.files));
                     fileInput.value = '';
                 }
@@ -276,6 +273,11 @@
             
             files.forEach(file => {
                 const id = 'f_' + Math.random().toString(36).substring(2, 9);
+                let preview = '';
+                try {
+                    preview = URL.createObjectURL(file);
+                } catch(e) {}
+                
                 filesQueue.push({
                     id: id,
                     file: file,
@@ -283,11 +285,11 @@
                     size: file.size,
                     status: 'pending',
                     errorMsg: '',
-                    previewUrl: URL.createObjectURL(file)
+                    previewUrl: preview
                 });
             });
 
-            updateStatus(`${filesQueue.length} foto(s) selecionada(s). Clique em "Enviar Fotos para o PC".`);
+            updateStatus(`${filesQueue.length} foto(s) selecionada(s). Clique abaixo em "Enviar Fotos para o PC".`);
             renderQueue();
         }
 
@@ -295,12 +297,18 @@
             if (isUploading) return;
             filesQueue = filesQueue.filter(f => f.id !== id);
             renderQueue();
+            if (filesQueue.length === 0) {
+                updateStatus('Pronto para escolher fotos.');
+            } else {
+                updateStatus(`${filesQueue.length} foto(s) selecionada(s).`);
+            }
         }
 
         function clearQueue() {
             if (isUploading) return;
             filesQueue = [];
             renderQueue();
+            updateStatus('Lista limpa. Pronto para escolher fotos.');
         }
 
         function formatBytes(bytes) {
@@ -342,7 +350,7 @@
 
                 card.innerHTML = `
                     <div class="flex items-center space-x-3 overflow-hidden">
-                        <img src="${item.previewUrl}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0" alt="thumb">
+                        ${item.previewUrl ? `<img src="${item.previewUrl}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0" alt="thumb">` : `<div class="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center flex-shrink-0">📷</div>`}
                         <div class="truncate">
                             <p class="text-xs font-bold text-slate-800 truncate">${item.name}</p>
                             <div class="flex items-center space-x-2 mt-0.5">
@@ -353,14 +361,13 @@
                         </div>
                     </div>
                     ${item.status === 'pending' && !isUploading ? `
-                        <button onclick="removeFile('${item.id}')" class="text-slate-400 hover:text-red-500 p-1">✕</button>
+                        <button onclick="removeFile('${item.id}')" class="text-slate-400 hover:text-red-500 p-1 font-bold">✕</button>
                     ` : ''}
                 `;
                 filesContainer.appendChild(card);
             });
         }
 
-        // Lê ficheiro diretamente em Base64
         function readFileAsBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -386,7 +393,7 @@
             uploadBtn.disabled = true;
             uploadBtn.classList.add('opacity-70', 'cursor-not-allowed');
             btnClearAll.classList.add('hidden');
-            btnText.innerText = 'A enviar fotos... aguarde';
+            btnText.innerText = 'A enviar para a nuvem...';
 
             const progressContainer = document.getElementById('globalProgressContainer');
             const progressBar = document.getElementById('globalProgressBar');
@@ -465,10 +472,8 @@
                     document.getElementById('queueSection').classList.add('hidden');
                     document.getElementById('successCard').classList.remove('hidden');
                     filesQueue = [];
-                    updateStatus('Todas as fotos foram enviadas com sucesso para a nuvem!');
+                    updateStatus('✓ Todas as fotos foram enviadas com sucesso para a nuvem!');
                 }, 500);
-            } else {
-                alert('Ocorreu um erro no envio. Verifique o "Estado do Sistema" no final da página.');
             }
         }
 
@@ -476,7 +481,7 @@
             filesQueue = [];
             document.getElementById('successCard').classList.add('hidden');
             document.getElementById('globalProgressContainer').classList.add('hidden');
-            updateStatus('Pronto para selecionar fotos.');
+            updateStatus('Pronto para escolher fotos.');
         }
 
         window.addEventListener('DOMContentLoaded', initApp);
